@@ -834,13 +834,107 @@ const QUOTES = [
   { text: "Commence là où tu es, utilise ce que tu as, fais ce que tu peux.", author: "Arthur Ashe" },
 ];
 
-const NEWS = [
-  { cat:'TECH', emoji:'🤖', title:'L\'IA dépasse les médecins sur certains diagnostics selon une étude', time:'Il y a 1h' },
-  { cat:'SPORT', emoji:'⚽', title:'Ligue 1 : le PSG file vers le titre avec une victoire écrasante', time:'Il y a 2h' },
-  { cat:'TECH', emoji:'📱', title:'Apple annonce une nouvelle fonctionnalité révolutionnaire pour iOS 20', time:'Il y a 3h' },
-  { cat:'MONDE', emoji:'🌍', title:'Sommet climatique : des engagements historiques signés ce matin', time:'Il y a 4h' },
-  { cat:'FINANCE', emoji:'📈', title:'Le CAC 40 en hausse de 1.2% porté par les valeurs tech', time:'Il y a 5h' },
-];
+// ── NEWS SYSTEM ──
+let NEWS_LIVE = []; // articles chargés en temps réel
+let NEWS_LOADING = false;
+let NEWS_LOADED = false;
+
+const RSS_FEEDS = {
+  tech:    { url: 'https://www.lemonde.fr/pixels/rss_full.xml',         cat: 'TECH',    emoji: '💻' },
+  sport:   { url: 'https://www.lequipe.fr/rss/actu_rss.xml',           cat: 'SPORT',   emoji: '⚽' },
+  monde:   { url: 'https://www.lemonde.fr/international/rss_full.xml', cat: 'MONDE',   emoji: '🌍' },
+  finance: { url: 'https://www.lefigaro.fr/rss/figaro_economie.xml',   cat: 'FINANCE', emoji: '📈' },
+  culture: { url: 'https://www.lemonde.fr/culture/rss_full.xml',       cat: 'CULTURE', emoji: '🎬' },
+  sante:   { url: 'https://www.lemonde.fr/sante/rss_full.xml',         cat: 'SANTÉ',   emoji: '🏃' },
+};
+
+const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
+const NEWS_CACHE_TTL = 15 * 60 * 1000; // 15 min
+
+function timeAgo(dateStr) {
+  try {
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+    if (diff < 1) return 'À l\'instant';
+    if (diff < 60) return `Il y a ${diff} min`;
+    if (diff < 1440) return `Il y a ${Math.floor(diff/60)}h`;
+    return `Il y a ${Math.floor(diff/1440)}j`;
+  } catch(e) { return ''; }
+}
+
+async function loadNews() {
+  if (NEWS_LOADING) return;
+  NEWS_LOADING = true;
+
+  const interests = Array.isArray(DATA.interests) && DATA.interests.length
+    ? DATA.interests : Object.keys(RSS_FEEDS);
+
+  const cacheKey = `news_${interests.sort().join('_')}`;
+  try {
+    const raw = localStorage.getItem(cacheKey);
+    if (raw) {
+      const { d, t } = JSON.parse(raw);
+      if (Date.now() - t < NEWS_CACHE_TTL && Array.isArray(d) && d.length) {
+        NEWS_LIVE = d;
+        NEWS_LOADED = true;
+        NEWS_LOADING = false;
+        refreshNewsCard();
+        return;
+      }
+    }
+  } catch(e) {}
+
+  const articles = [];
+  await Promise.all(interests.slice(0, 3).map(async interest => {
+    const feed = RSS_FEEDS[interest];
+    if (!feed) return;
+    try {
+      const res = await fetch(`${RSS2JSON}${encodeURIComponent(feed.url)}&count=4`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json.status !== 'ok' || !json.items) return;
+      json.items.slice(0, 4).forEach(item => {
+        articles.push({
+          cat: feed.cat,
+          emoji: feed.emoji,
+          title: item.title ? item.title.replace(/<[^>]*>/g,'').trim() : '',
+          time: timeAgo(item.pubDate),
+          link: item.link || '#'
+        });
+      });
+    } catch(e) {}
+  }));
+
+  if (articles.length) {
+    // Trier par plus récent
+    articles.sort((a, b) => {
+      const ta = a.time.includes('min') ? parseInt(a.time) : a.time.includes('h') ? parseInt(a.time)*60 : 9999;
+      const tb = b.time.includes('min') ? parseInt(b.time) : b.time.includes('h') ? parseInt(b.time)*60 : 9999;
+      return ta - tb;
+    });
+    NEWS_LIVE = articles;
+    NEWS_LOADED = true;
+    try { localStorage.setItem(cacheKey, JSON.stringify({ d: articles, t: Date.now() })); } catch(e) {}
+  } else {
+    // Fallback statique si tout échoue
+    NEWS_LIVE = [
+      { cat:'TECH',    emoji:'🤖', title:'L\'IA redéfinit les standards de la médecine diagnostique', time:'Il y a 1h', link:'#' },
+      { cat:'SPORT',   emoji:'⚽', title:'Ligue 1 : une journée riche en rebondissements', time:'Il y a 2h', link:'#' },
+      { cat:'MONDE',   emoji:'🌍', title:'Diplomatie internationale : nouveaux accords historiques', time:'Il y a 3h', link:'#' },
+    ];
+    NEWS_LOADED = true;
+  }
+
+  NEWS_LOADING = false;
+  refreshNewsCard();
+}
+
+function refreshNewsCard() {
+  const scroll = document.getElementById('dashScroll');
+  if (!scroll) return;
+  const old = scroll.querySelector('.card-news');
+  if (!old) return;
+  scroll.replaceChild(buildNewsCard(), old);
+}
 
 const SPORTS = [
   { team1:'PSG', team2:'Lyon', time:'20h45', live:false, league:'Ligue 1' },
@@ -1063,8 +1157,8 @@ function goToDashboard() {
   if (!_clockInterval) {
     _clockInterval = setInterval(updateClock, 1000);
   }
-  // Lance la météo réelle
   loadWeather();
+  loadNews();
 }
 
 // ── SETUP ──
@@ -1274,37 +1368,43 @@ function buildTasksCard() {
 }
 
 function buildNewsCard() {
-  const catMap = { tech:'TECH', sport:'SPORT', finance:'FINANCE', monde:'MONDE', culture:'CULTURE', sante:'SANTE' };
-  const filtered = NEWS.filter(n => {
-    if (DATA.interests.length === 0) return true;
-    return DATA.interests.some(i => {
-      const mapped = catMap[i] || i.toUpperCase();
-      return n.cat === mapped;
-    });
-  }).slice(0,3);
-
   const card = document.createElement('div');
-  card.className = 'card';
+  card.className = 'card card-news';
 
-  const newsHtml = filtered.length > 0
-    ? filtered.map(n => `
-    <div class="news-item" onclick="showToast('Article ouvert !')">
-      <div class="news-emoji">${n.emoji}</div>
-      <div class="news-content">
-        <div class="news-cat">${n.cat}</div>
-        <div class="news-title">${n.title}</div>
-        <div class="news-time">${n.time}</div>
-      </div>
-    </div>
-  `).join('')
-    : `<div style="padding:16px;font-size:14px;color:var(--text2);text-align:center">Aucune actu pour tes intérêts sélectionnés.</div>`;
+  let items = NEWS_LIVE;
+  if (items.length && Array.isArray(DATA.interests) && DATA.interests.length) {
+    const catMap = { tech:'TECH', sport:'SPORT', finance:'FINANCE', monde:'MONDE', culture:'CULTURE', sante:'SANTÉ' };
+    const wantedCats = DATA.interests.map(i => catMap[i] || i.toUpperCase());
+    const filtered = items.filter(n => wantedCats.includes(n.cat));
+    if (filtered.length) items = filtered;
+  }
+  items = items.slice(0, 4);
+
+  let bodyHtml;
+  if (!NEWS_LOADED) {
+    bodyHtml = `<div style="padding:20px;text-align:center;color:var(--text2);font-size:13px">
+      <div style="font-size:24px;margin-bottom:8px">📰</div>Chargement des actus...</div>`;
+  } else if (!items.length) {
+    bodyHtml = `<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">
+      Aucune actu disponible.</div>`;
+  } else {
+    bodyHtml = items.map(n => `
+      <a class="news-item" href="${n.link}" target="_blank" rel="noopener">
+        <div class="news-emoji">${n.emoji}</div>
+        <div class="news-content">
+          <div class="news-cat">${n.cat}</div>
+          <div class="news-title">${escapeHtml(n.title)}</div>
+          <div class="news-time">${n.time}</div>
+        </div>
+      </a>`).join('');
+  }
 
   card.innerHTML = `
     <div class="card-header">
       <div class="card-title">📰 ACTUALITÉS</div>
-      <button class="card-action" onclick="showToast('Tout voir bientôt !')">Tout voir</button>
+      <button class="card-action" onclick="NEWS_LOADED=false;NEWS_LIVE=[];loadNews();showToast('🔄 Actualisation...')">↺ Actu</button>
     </div>
-    <div class="news-list">${newsHtml}</div>
+    <div class="news-list">${bodyHtml}</div>
   `;
   return card;
 }
