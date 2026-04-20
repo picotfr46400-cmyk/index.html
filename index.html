@@ -835,30 +835,43 @@ const QUOTES = [
 ];
 
 // ── NEWS SYSTEM ──
-let NEWS_LIVE = []; // articles chargés en temps réel
+let NEWS_LIVE = [];
 let NEWS_LOADING = false;
 let NEWS_LOADED = false;
 
-const RSS_FEEDS = {
-  tech:    { url: 'https://www.lemonde.fr/pixels/rss_full.xml',         cat: 'TECH',    emoji: '💻' },
-  sport:   { url: 'https://www.lequipe.fr/rss/actu_rss.xml',           cat: 'SPORT',   emoji: '⚽' },
-  monde:   { url: 'https://www.lemonde.fr/international/rss_full.xml', cat: 'MONDE',   emoji: '🌍' },
-  finance: { url: 'https://www.lefigaro.fr/rss/figaro_economie.xml',   cat: 'FINANCE', emoji: '📈' },
-  culture: { url: 'https://www.lemonde.fr/culture/rss_full.xml',       cat: 'CULTURE', emoji: '🎬' },
-  sante:   { url: 'https://www.lemonde.fr/sante/rss_full.xml',         cat: 'SANTÉ',   emoji: '🏃' },
-};
+const RSS_SOURCES = [
+  { url:'https://www.lemonde.fr/rss/une.xml',              cat:'MONDE',   emoji:'🌍', interests:['monde','tech','finance','culture','sante'] },
+  { url:'https://www.lequipe.fr/rss/actu_rss_une.xml',    cat:'SPORT',   emoji:'⚽', interests:['sport'] },
+  { url:'https://feeds.bbci.co.uk/news/technology/rss.xml',cat:'TECH',   emoji:'💻', interests:['tech'] },
+  { url:'https://feeds.feedburner.com/clubic',            cat:'TECH',    emoji:'💻', interests:['tech'] },
+];
 
-const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
-const NEWS_CACHE_TTL = 15 * 60 * 1000; // 15 min
+const NEWS_CACHE_TTL = 15 * 60 * 1000;
 
 function timeAgo(dateStr) {
   try {
     const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
     if (diff < 1) return 'À l\'instant';
-    if (diff < 60) return `Il y a ${diff} min`;
+    if (diff < 60) return `Il y a ${diff}min`;
     if (diff < 1440) return `Il y a ${Math.floor(diff/60)}h`;
     return `Il y a ${Math.floor(diff/1440)}j`;
   } catch(e) { return ''; }
+}
+
+async function fetchRSSFeed(source) {
+  const proxy = `https://corsproxy.io/?${encodeURIComponent(source.url)}`;
+  const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  const xml = new DOMParser().parseFromString(text, 'text/xml');
+  const items = [...xml.querySelectorAll('item, entry')].slice(0, 4);
+  return items.map(item => {
+    const title = (item.querySelector('title')?.textContent || '').trim().replace(/\s+/g,' ');
+    const link = item.querySelector('link')?.textContent?.trim()
+      || item.querySelector('link')?.getAttribute('href') || '#';
+    const pubDate = item.querySelector('pubDate, published, updated')?.textContent || '';
+    return { cat: source.cat, emoji: source.emoji, title, link, time: timeAgo(pubDate) };
+  }).filter(a => a.title.length > 5);
 }
 
 async function loadNews() {
@@ -866,60 +879,43 @@ async function loadNews() {
   NEWS_LOADING = true;
 
   const interests = Array.isArray(DATA.interests) && DATA.interests.length
-    ? DATA.interests : Object.keys(RSS_FEEDS);
+    ? DATA.interests : ['monde','tech','sport'];
 
-  const cacheKey = `news_${interests.sort().join('_')}`;
+  const cacheKey = `news2_${interests.slice().sort().join('_')}`;
   try {
     const raw = localStorage.getItem(cacheKey);
     if (raw) {
       const { d, t } = JSON.parse(raw);
-      if (Date.now() - t < NEWS_CACHE_TTL && Array.isArray(d) && d.length) {
-        NEWS_LIVE = d;
-        NEWS_LOADED = true;
-        NEWS_LOADING = false;
-        refreshNewsCard();
-        return;
+      if (Date.now() - t < NEWS_CACHE_TTL && Array.isArray(d) && d.length > 0) {
+        NEWS_LIVE = d; NEWS_LOADED = true; NEWS_LOADING = false;
+        refreshNewsCard(); return;
       }
     }
   } catch(e) {}
 
-  const articles = [];
-  await Promise.all(interests.slice(0, 3).map(async interest => {
-    const feed = RSS_FEEDS[interest];
-    if (!feed) return;
-    try {
-      const res = await fetch(`${RSS2JSON}${encodeURIComponent(feed.url)}&count=4`);
-      if (!res.ok) return;
-      const json = await res.json();
-      if (json.status !== 'ok' || !json.items) return;
-      json.items.slice(0, 4).forEach(item => {
-        articles.push({
-          cat: feed.cat,
-          emoji: feed.emoji,
-          title: item.title ? item.title.replace(/<[^>]*>/g,'').trim() : '',
-          time: timeAgo(item.pubDate),
-          link: item.link || '#'
-        });
-      });
-    } catch(e) {}
-  }));
+  // Sélectionner les sources pertinentes
+  const sources = RSS_SOURCES.filter(s =>
+    s.interests.some(i => interests.includes(i))
+  ).slice(0, 3);
 
-  if (articles.length) {
-    // Trier par plus récent
-    articles.sort((a, b) => {
-      const ta = a.time.includes('min') ? parseInt(a.time) : a.time.includes('h') ? parseInt(a.time)*60 : 9999;
-      const tb = b.time.includes('min') ? parseInt(b.time) : b.time.includes('h') ? parseInt(b.time)*60 : 9999;
-      return ta - tb;
-    });
-    NEWS_LIVE = articles;
+  // Fetch en parallèle avec timeout individuel
+  const results = await Promise.allSettled(sources.map(s => fetchRSSFeed(s)));
+
+  const articles = [];
+  results.forEach(r => {
+    if (r.status === 'fulfilled') articles.push(...r.value);
+  });
+
+  if (articles.length >= 2) {
+    NEWS_LIVE = articles.slice(0, 6);
     NEWS_LOADED = true;
-    try { localStorage.setItem(cacheKey, JSON.stringify({ d: articles, t: Date.now() })); } catch(e) {}
+    try { localStorage.setItem(cacheKey, JSON.stringify({ d: NEWS_LIVE, t: Date.now() })); } catch(e) {}
   } else {
-    // Fallback statique si tout échoue
+    // Fallback lisible
     NEWS_LIVE = [
-      { cat:'TECH',    emoji:'🤖', title:'L\'IA redéfinit les standards de la médecine diagnostique', time:'Il y a 1h', link:'#' },
-      { cat:'SPORT',   emoji:'⚽', title:'Ligue 1 : une journée riche en rebondissements', time:'Il y a 2h', link:'#' },
-      { cat:'MONDE',   emoji:'🌍', title:'Diplomatie internationale : nouveaux accords historiques', time:'Il y a 3h', link:'#' },
+      { cat:'TECH',  emoji:'💻', title:'Les dernières innovations en intelligence artificielle', time:'Récent', link:'https://www.lemonde.fr/pixels/' },
+      { cat:'MONDE', emoji:'🌍', title:'Actualités internationales du jour', time:'Récent', link:'https://www.lemonde.fr/international/' },
+      { cat:'SPORT', emoji:'⚽', title:'Les résultats sportifs du jour', time:'Récent', link:'https://www.lequipe.fr/' },
     ];
     NEWS_LOADED = true;
   }
@@ -932,8 +928,7 @@ function refreshNewsCard() {
   const scroll = document.getElementById('dashScroll');
   if (!scroll) return;
   const old = scroll.querySelector('.card-news');
-  if (!old) return;
-  scroll.replaceChild(buildNewsCard(), old);
+  if (old) scroll.replaceChild(buildNewsCard(), old);
 }
 
 const SPORTS = [
