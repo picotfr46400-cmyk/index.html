@@ -976,14 +976,29 @@ function getWMOEmoji(code) { return WMO_EMOJI[code] || WMO_EMOJI[Math.floor((cod
 function getWMODesc(code) { return WMO_CODES[code] || WMO_CODES[Math.floor((code||0)/10)*10] || 'Variable'; }
 
 async function loadWeather() {
+  // Détecter si on est dans un environnement sandbox (iframe Claude, file://)
+  const isSandbox = window.location.protocol === 'null:' 
+    || window.location.protocol === 'blob:'
+    || (window.self !== window.top && !window.location.hostname);
+  
+  if (isSandbox) {
+    WEATHER.desc = '→ Ouvrir sur Vercel';
+    WEATHER.emoji = '🌐';
+    WEATHER.temp = '?';
+    WEATHER.loaded = true;
+    refreshWeatherCard();
+    return;
+  }
+
+  // Charger par ville immédiatement (fiable)
+  await loadWeatherCity(DATA.city || 'Paris');
+  // Tenter géoloc en bonus
   if (navigator && navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       pos => loadWeatherCoords(pos.coords.latitude, pos.coords.longitude),
-      () => loadWeatherCity(DATA.city || 'Paris'),
+      () => {},
       { timeout: 5000, maximumAge: 300000 }
     );
-  } else {
-    loadWeatherCity(DATA.city || 'Paris');
   }
 }
 
@@ -1048,10 +1063,12 @@ async function loadWeatherCoords(lat, lon) {
     if (daily && daily.time) {
       for (let i = 1; i <= 5 && i < daily.time.length; i++) {
         const d = new Date(daily.time[i] + 'T12:00:00');
+        // Open-Meteo retourne weather_code (avec underscore) dans daily
+        const code = daily.weather_code ? daily.weather_code[i] : (daily.weathercode ? daily.weathercode[i] : 0);
         forecast.push({
           day: DAY_NAMES[d.getDay()],
           temp: Math.round(daily.temperature_2m_max[i]),
-          emoji: getWMOEmoji(daily.weathercode[i])
+          emoji: getWMOEmoji(code)
         });
       }
     }
@@ -1067,9 +1084,6 @@ async function loadWeatherCoords(lat, lon) {
       loaded: true,
       forecast
     };
-
-    // forecast utilise weather_code (avec underscore) dans daily
-    
 
     applyWeather(wdata);
     try { localStorage.setItem(key, JSON.stringify({ d: wdata, t: Date.now() })); } catch(e) {}
@@ -1578,11 +1592,19 @@ function resetApp() {
 
 // ── INIT ──
 (function init() {
+  // Nettoyer les anciennes clés de cache météo pour éviter les données corrompues
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('wx_') || k.startsWith('wx2_') || k.startsWith('om_') || k.startsWith('owm_')) {
+        localStorage.removeItem(k);
+      }
+    });
+  } catch(e) {}
+
   const hasData = loadData();
   if (hasData && DATA.name) {
     goToDashboard();
   } else {
-    // Only start clock if not going to dashboard (which starts its own)
     updateClock();
     if (!_clockInterval) {
       _clockInterval = setInterval(updateClock, 1000);
