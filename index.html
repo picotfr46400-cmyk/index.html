@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0A0F1E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MorningDash">
+
+<!-- SEO primaire -->
+<title>MorningDash — Ton dashboard matinal personnalisé</title>
+<meta name="description" content="MorningDash affiche chaque matin ta météo en temps réel, tes actualités, tes tâches du jour et les matchs du soir. Gratuit, sans inscription, installable sur ton téléphone.">
+<meta name="keywords" content="dashboard matin, météo, actualités, tâches, productivité, app mobile, morning routine">
+<meta name="author" content="MorningDash">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://matin-gamma.vercel.app/">
+
+<!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://matin-gamma.vercel.app/">
+<meta property="og:title" content="MorningDash — Ton dashboard matinal personnalisé">
+<meta property="og:description" content="Météo, actus, tâches et sport réunis en une app. Lance ta journée avec MorningDash — gratuit et installable sur mobile.">
+<meta property="og:image" content="https://matin-gamma.vercel.app/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="MorningDash">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://matin-gamma.vercel.app/">
+<meta name="twitter:title" content="MorningDash — Ton dashboard matinal personnalisé">
+<meta name="twitter:description" content="Météo, actus, tâches et sport réunis en une app. Lance ta journée avec MorningDash.">
+<meta name="twitter:image" content="https://matin-gamma.vercel.app/og-image.png">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Structured Data JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "MorningDash",
+  "url": "https://matin-gamma.vercel.app/",
+  "description": "Dashboard matinal personnalisé avec météo, actualités, tâches et sport.",
+  "applicationCategory": "ProductivityApplication",
+  "operatingSystem": "Web, iOS, Android",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "inLanguage": "fr"
+}
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+  --bg1: #070B18;
+  --bg2: #0D1428;
+  --card: rgba(255,255,255,0.06);
+  --card-border: rgba(255,255,255,0.1);
+  --card-hover: rgba(255,255,255,0.1);
+  --aurora1: #1A3A6B;
+  --aurora2: #2D1B4E;
+  --aurora3: #0D3B2E;
+  --accent: #5B8DEF;
+  --accent2: #A78BFA;
+  --warm: #F59E0B;
+  --green: #10B981;
+  --red: #EF4444;
+  --text: #F0F4FF;
+  --text2: rgba(240,244,255,0.6);
+  --text3: rgba(240,244,255,0.35);
+  --sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --radius: 20px;
+  --radius-sm: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html { height: 100%; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg1);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Aurora background */
+.aurora {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.aurora-blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px); opacity: 0.35;
+  animation: auroraFloat var(--dur) ease-in-out infinite alternate;
+}
+.aurora-blob:nth-child(1) { width: 60vw; height: 40vh; background: var(--aurora1); top: -10%; left: -10%; --dur: 8s; }
+.aurora-blob:nth-child(2) { width: 50vw; height: 50vh; background: var(--aurora2); top: 20%; right: -15%; --dur: 11s; }
+.aurora-blob:nth-child(3) { width: 40vw; height: 35vh; background: var(--aurora3); bottom: 10%; left: 20%; --dur: 9s; }
+@keyframes auroraFloat {
+  from { transform: translate(0,0) scale(1); }
+  to { transform: translate(3%, 5%) scale(1.08); }
+}
+
+/* APP SHELL */
+.app { position: relative; z-index: 1; max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* SCREENS */
+.screen { display: none; flex-direction: column; min-height: 100vh; }
+.screen.active { display: flex; }
+
+/* ═══════════════════════════
+   ONBOARDING
+═══════════════════════════ */
+#onboarding {
+  padding: 40px 24px 32px;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(91,141,239,0.12) 0%, transparent 60%);
+}
+
+.ob-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+}
+.ob-logo span { font-size: 26px; }
+
+.ob-hero { text-align: center; padding: 40px 0; }
+.ob-emoji { font-size: 72px; margin-bottom: 24px; display: block; animation: obFloat 3s ease-in-out infinite; }
+@keyframes obFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+.ob-title {
+  font-family: var(--serif);
+  font-size: 36px; font-weight: 400; line-height: 1.15;
+  letter-spacing: -0.5px; margin-bottom: 16px;
+}
+.ob-title em { font-style: italic; color: var(--accent); }
+.ob-sub { font-size: 15px; color: var(--text2); line-height: 1.65; max-width: 300px; margin: 0 auto; }
+
+.ob-features { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+.ob-feature {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+}
+.ob-feature-icon { font-size: 24px; width: 40px; text-align: center; flex-shrink: 0; }
+.ob-feature-text {}
+.ob-feature-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.ob-feature-sub { font-size: 12px; color: var(--text2); }
+
+.ob-cta {
+  width: 100%; padding: 18px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: var(--radius);
+  font-family: var(--sans); font-size: 16px; font-weight: 700;
+  color: white; cursor: pointer;
+  box-shadow: 0 8px 32px rgba(91,141,239,0.4);
+  transition: all 0.2s;
+  letter-spacing: -0.2px;
+}
+.ob-cta:active { transform: scale(0.98); }
+
+.ob-login {
+  text-align: center; margin-top: 16px;
+  font-size: 14px; color: var(--text2);
+}
+.ob-login a { color: var(--accent); font-weight: 600; cursor: pointer; }
+
+/* ═══════════════════════════
+   SETUP
+═══════════════════════════ */
+#setup {
+  padding: 40px 24px 32px;
+}
+.setup-step { display: none; flex-direction: column; gap: 24px; }
+.setup-step.active { display: flex; }
+
+.setup-header { margin-bottom: 8px; }
+.setup-step-label { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.setup-title { font-family: var(--serif); font-size: 28px; line-height: 1.2; }
+.setup-title em { font-style: italic; color: var(--accent2); }
+.setup-sub { font-size: 14px; color: var(--text2); margin-top: 8px; line-height: 1.6; }
+
+.setup-progress { display: flex; gap: 6px; margin-bottom: 8px; }
+.setup-dot { height: 3px; flex: 1; border-radius: 2px; background: var(--card); transition: background 0.3s; }
+.setup-dot.done { background: var(--accent); }
+
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-label { font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: 0.3px; }
+.input-field {
+  width: 100%; padding: 14px 16px;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: var(--sans); font-size: 16px;
+  outline: none; transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.input-field:focus { border-color: var(--accent); }
+.input-field::placeholder { color: var(--text3); }
+
+.toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.toggle-item {
+  background: var(--card); border: 2px solid var(--card-border);
+  border-radius: var(--radius-sm); padding: 16px 12px;
+  cursor: pointer; transition: all 0.2s; text-align: center;
+}
+.toggle-item.selected { border-color: var(--accent); background: rgba(91,141,239,0.15); }
+.toggle-item:active { transform: scale(0.97); }
+.toggle-emoji { font-size: 24px; margin-bottom: 6px; }
+.toggle-label { font-size: 13px; font-weight: 600; }
+.toggle-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+.setup-btn {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: var(--radius);
+  font-family: var(--sans); font-size: 15px; font-weight: 700;
+  color: white; cursor: pointer; transition: all 0.2s;
+}
+.setup-btn:active { transform: scale(0.98); }
+.setup-btn:disabled { opacity: 0.4; }
+
+/* ═══════════════════════════
+   MAIN DASHBOARD
+═══════════════════════════ */
+#dashboard {
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* TOP STATUS BAR */
+.status-bar {
+  padding: 16px 20px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.status-time { font-size: 13px; color: var(--text2); font-weight: 500; }
+.status-icons { display: flex; gap: 8px; align-items: center; }
+.status-icon { font-size: 14px; }
+.pro-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  padding: 3px 8px; border-radius: 20px;
+  background: linear-gradient(135deg, var(--warm), #F97316);
+  color: white;
+}
+
+/* GREETING HEADER */
+.greeting-header {
+  padding: 20px 20px 0;
+  flex-shrink: 0;
+}
+.greeting-date { font-size: 12px; color: var(--text2); font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
+.greeting-text {
+  font-family: var(--serif); font-size: 30px; line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+.greeting-text em { font-style: italic; color: var(--warm); }
+.greeting-sub { font-size: 14px; color: var(--text2); margin-top: 6px; }
+
+/* SCROLL CONTENT */
+.dash-scroll {
+  flex: 1; padding: 20px;
+  display: flex; flex-direction: column; gap: 16px;
+  padding-bottom: 100px;
+}
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+  animation: cardIn 0.5s ease both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+.card:nth-child(4) { animation-delay: 0.2s; }
+.card:nth-child(5) { animation-delay: 0.25s; }
+.card:nth-child(6) { animation-delay: 0.3s; }
+.card:nth-child(7) { animation-delay: 0.35s; }
+
+.card-header {
+  padding: 16px 16px 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+}
+.card-action {
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  cursor: pointer; background: none; border: none; padding: 4px;
+}
+
+/* WEATHER CARD */
+.weather-main {
+  padding: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.weather-left {}
+.weather-temp {
+  font-family: var(--serif); font-size: 56px;
+  line-height: 1; letter-spacing: -2px; font-weight: 400;
+}
+.weather-desc { font-size: 14px; color: var(--text2); margin-top: 4px; }
+.weather-city { font-size: 13px; color: var(--text3); margin-top: 2px; }
+.weather-emoji { font-size: 64px; line-height: 1; }
+.weather-extras {
+  padding: 0 16px 16px;
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+}
+.weather-extra {
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px; padding: 10px 8px; text-align: center;
+}
+.weather-extra-val { font-size: 14px; font-weight: 700; }
+.weather-extra-label { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+/* QUOTE CARD */
+.quote-content { padding: 16px; }
+.quote-text {
+  font-family: var(--serif); font-style: italic;
+  font-size: 18px; line-height: 1.5; color: var(--text);
+  margin-bottom: 10px;
+}
+.quote-author { font-size: 13px; color: var(--text2); font-weight: 600; }
+
+/* NEWS CARD */
+.news-list { padding: 8px 0; }
+.news-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 16px; cursor: pointer;
+  transition: background 0.15s; border-bottom: 1px solid var(--card-border);
+  text-decoration: none; color: inherit;
+}
+.news-item:last-child { border-bottom: none; }
+.news-item:active { background: var(--card-hover); }
+.news-emoji { font-size: 28px; flex-shrink: 0; margin-top: 2px; }
+.news-content {}
+.news-cat {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 4px;
+}
+.news-title { font-size: 14px; font-weight: 600; line-height: 1.4; }
+.news-time { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* TASKS CARD */
+.tasks-list { padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+.task-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 12px;
+  background: rgba(255,255,255,0.04); cursor: pointer;
+  transition: all 0.2s;
+}
+.task-item.done { opacity: 0.45; }
+.task-check {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--card-border); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.task-item.done .task-check { background: var(--green); border-color: var(--green); }
+.task-check-icon { font-size: 11px; display: none; }
+.task-item.done .task-check-icon { display: block; }
+.task-text { font-size: 14px; font-weight: 500; flex: 1; }
+.task-item.done .task-text { text-decoration: line-through; color: var(--text2); }
+.task-priority {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.task-priority.high { background: var(--red); }
+.task-priority.med { background: var(--warm); }
+.task-priority.low { background: var(--green); }
+
+.add-task-row {
+  display: flex; gap: 8px; padding: 0 16px 14px;
+}
+.add-task-input {
+  flex: 1; padding: 10px 14px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+  border-radius: 10px; color: var(--text);
+  font-family: var(--sans); font-size: 14px; outline: none;
+}
+.add-task-input::placeholder { color: var(--text3); }
+.add-task-btn {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--accent); border: none; cursor: pointer;
+  font-size: 20px; color: white; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* SPORT CARD */
+.sport-list { padding: 8px 0; }
+.sport-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--card-border);
+}
+.sport-item:last-child { border-bottom: none; }
+.sport-teams { flex: 1; }
+.sport-match {
+  font-size: 14px; font-weight: 600; margin-bottom: 3px;
+}
+.sport-meta { font-size: 11px; color: var(--text2); }
+.sport-time {
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  text-align: right; min-width: 50px;
+}
+.sport-live {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  padding: 3px 7px; border-radius: 6px;
+  background: rgba(239,68,68,0.2); color: var(--red);
+  animation: livePulse 1.5s infinite;
+}
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* STOCKS CARD */
+.stocks-grid { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.stock-item {
+  display: flex; align-items: center; gap: 10px;
+}
+.stock-icon { font-size: 20px; width: 32px; text-align: center; flex-shrink: 0; }
+.stock-name { font-size: 14px; font-weight: 600; flex: 1; }
+.stock-ticker { font-size: 11px; color: var(--text2); }
+.stock-right { text-align: right; }
+.stock-price { font-size: 14px; font-weight: 700; }
+.stock-change { font-size: 11px; font-weight: 600; }
+.stock-change.up { color: var(--green); }
+.stock-change.down { color: var(--red); }
+
+/* AD CARD */
+.ad-card {
+  background: linear-gradient(135deg, rgba(91,141,239,0.15), rgba(167,139,250,0.1));
+  border: 1px solid rgba(91,141,239,0.2);
+}
+.ad-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 2px;
+  color: var(--text3); text-transform: uppercase;
+  padding: 10px 16px 0; text-align: right;
+}
+.ad-content { padding: 12px 16px 16px; display: flex; align-items: center; gap: 14px; }
+.ad-emoji { font-size: 36px; }
+.ad-text {}
+.ad-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.ad-sub { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.ad-cta {
+  margin-top: 10px; display: inline-block;
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  background: rgba(91,141,239,0.15); border: 1px solid rgba(91,141,239,0.3);
+  padding: 6px 14px; border-radius: 8px; cursor: pointer;
+}
+
+/* UPGRADE CARD */
+.upgrade-card {
+  background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(249,115,22,0.1));
+  border: 1px solid rgba(245,158,11,0.25);
+  padding: 20px;
+  text-align: center;
+}
+.upgrade-emoji { font-size: 32px; margin-bottom: 10px; }
+.upgrade-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.upgrade-sub { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
+.upgrade-btn {
+  display: inline-block; padding: 12px 28px;
+  background: linear-gradient(135deg, var(--warm), #F97316);
+  border: none; border-radius: 12px;
+  font-family: var(--sans); font-size: 14px; font-weight: 700;
+  color: white; cursor: pointer; transition: all 0.2s;
+}
+.upgrade-btn:active { transform: scale(0.97); }
+.upgrade-price { font-size: 12px; color: var(--text2); margin-top: 10px; }
+
+/* FORECAST */
+.weather-forecast {
+  display: flex; gap: 0;
+  border-top: 1px solid var(--card-border);
+  padding: 12px 16px;
+}
+.forecast-item {
+  flex: 1; text-align: center;
+  padding: 8px 4px;
+  border-right: 1px solid var(--card-border);
+}
+.forecast-item:last-child { border-right: none; }
+.forecast-day { font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.5px; }
+.forecast-emoji { font-size: 20px; margin-bottom: 4px; }
+.forecast-temp { font-size: 14px; font-weight: 700; }
+.bottom-nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: rgba(10,15,30,0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--card-border);
+  display: flex; padding: 10px 20px 20px; gap: 0;
+  z-index: 100;
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; cursor: pointer;
+  padding: 6px; border-radius: 12px; transition: all 0.2s;
+  border: none; background: none;
+}
+.nav-item.active .nav-icon { background: rgba(91,141,239,0.2); }
+.nav-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; transition: all 0.2s;
+}
+.nav-label { font-size: 10px; font-weight: 600; color: var(--text2); }
+.nav-item.active .nav-label { color: var(--accent); }
+
+/* PROFILE SCREEN */
+#profile { padding: 40px 20px 100px; gap: 16px; }
+.profile-header { text-align: center; padding: 20px 0; }
+.profile-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; margin: 0 auto 16px;
+}
+.profile-name { font-family: var(--serif); font-size: 26px; }
+.profile-email { font-size: 14px; color: var(--text2); margin-top: 4px; }
+
+.settings-section { display: flex; flex-direction: column; gap: 8px; }
+.settings-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text2); padding: 0 4px; }
+.settings-item {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  cursor: pointer; transition: background 0.15s;
+}
+.settings-item:active { background: var(--card-hover); }
+.settings-item-icon { font-size: 20px; width: 32px; text-align: center; }
+.settings-item-text { flex: 1; }
+.settings-item-title { font-size: 14px; font-weight: 600; }
+.settings-item-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.settings-item-arrow { color: var(--text3); font-size: 16px; }
+
+/* TOGGLE SWITCH */
+.toggle-switch {
+  width: 44px; height: 24px; border-radius: 12px;
+  background: var(--card-border); position: relative;
+  cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle-switch.on { background: var(--accent); }
+.toggle-switch::after {
+  content: ''; position: absolute;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: white; top: 2px; left: 2px;
+  transition: transform 0.2s;
+}
+.toggle-switch.on::after { transform: translateX(20px); }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: rgba(30,40,70,0.95); border: 1px solid var(--card-border);
+  backdrop-filter: blur(20px); color: var(--text);
+  padding: 12px 20px; border-radius: 12px;
+  font-size: 14px; font-weight: 500;
+  white-space: nowrap; z-index: 200;
+  opacity: 0; transition: all 0.3s;
+  pointer-events: none;
+  max-width: calc(430px - 48px);
+  text-overflow: ellipsis; overflow: hidden;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="aurora">
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+  <div class="aurora-blob"></div>
+</div>
+
+<div class="app">
+
+  <!-- ═══════ ONBOARDING ═══════ -->
+  <div id="onboarding" class="screen active">
+    <div class="ob-logo"><span>🌅</span> MorningDash</div>
+    <div class="ob-hero">
+      <span class="ob-emoji">☀️</span>
+      <h1 class="ob-title">Ta matinée,<br><em>parfaitement organisée.</em></h1>
+      <p class="ob-sub">Tout ce dont tu as besoin chaque matin, en une seule app. Météo, actus, tâches, sport et bourse.</p>
+    </div>
+    <div>
+      <div class="ob-features">
+        <div class="ob-feature">
+          <div class="ob-feature-icon">🌤</div>
+          <div class="ob-feature-text">
+            <div class="ob-feature-title">Météo en temps réel</div>
+            <div class="ob-feature-sub">Géolocalisation automatique</div>
+          </div>
+        </div>
+        <div class="ob-feature">
+          <div class="ob-feature-icon">📰</div>
+          <div class="ob-feature-text">
+            <div class="ob-feature-title">Actus personnalisées</div>
+            <div class="ob-feature-sub">Filtrées selon tes intérêts</div>
+          </div>
+        </div>
+        <div class="ob-feature">
+          <div class="ob-feature-icon">✅</div>
+          <div class="ob-feature-text">
+            <div class="ob-feature-title">Tâches du jour</div>
+            <div class="ob-feature-sub">Productivité maximale</div>
+          </div>
+        </div>
+      </div>
+      <button class="ob-cta" onclick="goToSetup()">Commencer gratuitement →</button>
+      <div class="ob-login">Déjà un compte ? <a onclick="goToDashboard()">Se connecter</a></div>
+    </div>
+  </div>
+
+  <!-- ═══════ SETUP ═══════ -->
+  <div id="setup" class="screen">
+    <div style="padding:40px 24px 0">
+      <div class="setup-progress" id="setupProgress">
+        <div class="setup-dot done"></div>
+        <div class="setup-dot"></div>
+        <div class="setup-dot"></div>
+      </div>
+    </div>
+
+    <!-- Step 1: Name + City -->
+    <div class="setup-step active" id="step1" style="padding:24px">
+      <div class="setup-header">
+        <div class="setup-step-label">Étape 1 sur 3</div>
+        <h2 class="setup-title">Dis-nous qui tu es <em>et où tu es.</em></h2>
+        <p class="setup-sub">Pour personnaliser ton expérience et afficher ta météo locale.</p>
+      </div>
+      <div class="input-group">
+        <div class="input-label">TON PRÉNOM</div>
+        <input type="text" class="input-field" id="inputName" placeholder="Ex: Lucas" maxlength="20">
+      </div>
+      <div class="input-group">
+        <div class="input-label">TA VILLE</div>
+        <input type="text" class="input-field" id="inputCity" placeholder="Ex: Paris" maxlength="30">
+      </div>
+      <button class="setup-btn" onclick="goStep(2)">Continuer →</button>
+    </div>
+
+    <!-- Step 2: Interests -->
+    <div class="setup-step" id="step2" style="padding:24px">
+      <div class="setup-header">
+        <div class="setup-step-label">Étape 2 sur 3</div>
+        <h2 class="setup-title">Quels sujets <em>t'intéressent ?</em></h2>
+        <p class="setup-sub">Tes actus seront filtrées selon ces thèmes.</p>
+      </div>
+      <div class="toggle-grid">
+        <div class="toggle-item selected" onclick="toggleInterest(this,'tech')">
+          <div class="toggle-emoji">💻</div>
+          <div class="toggle-label">Tech</div>
+        </div>
+        <div class="toggle-item selected" onclick="toggleInterest(this,'sport')">
+          <div class="toggle-emoji">⚽</div>
+          <div class="toggle-label">Sport</div>
+        </div>
+        <div class="toggle-item" onclick="toggleInterest(this,'finance')">
+          <div class="toggle-emoji">📈</div>
+          <div class="toggle-label">Finance</div>
+        </div>
+        <div class="toggle-item" onclick="toggleInterest(this,'monde')">
+          <div class="toggle-emoji">🌍</div>
+          <div class="toggle-label">Monde</div>
+        </div>
+        <div class="toggle-item" onclick="toggleInterest(this,'culture')">
+          <div class="toggle-emoji">🎬</div>
+          <div class="toggle-label">Culture</div>
+        </div>
+        <div class="toggle-item" onclick="toggleInterest(this,'sante')">
+          <div class="toggle-emoji">🏃</div>
+          <div class="toggle-label">Santé</div>
+        </div>
+      </div>
+      <button class="setup-btn" onclick="goStep(3)">Continuer →</button>
+    </div>
+
+    <!-- Step 3: Widgets -->
+    <div class="setup-step" id="step3" style="padding:24px">
+      <div class="setup-header">
+        <div class="setup-step-label">Étape 3 sur 3</div>
+        <h2 class="setup-title">Quels widgets <em>afficher ?</em></h2>
+        <p class="setup-sub">Tu pourras modifier ça plus tard dans les paramètres.</p>
+      </div>
+      <div class="toggle-grid">
+        <div class="toggle-item selected" onclick="toggleWidget(this,'meteo')">
+          <div class="toggle-emoji">🌤</div>
+          <div class="toggle-label">Météo</div>
+          <div class="toggle-sub">Toujours actif</div>
+        </div>
+        <div class="toggle-item selected" onclick="toggleWidget(this,'actus')">
+          <div class="toggle-emoji">📰</div>
+          <div class="toggle-label">Actus</div>
+        </div>
+        <div class="toggle-item selected" onclick="toggleWidget(this,'taches')">
+          <div class="toggle-emoji">✅</div>
+          <div class="toggle-label">Tâches</div>
+        </div>
+        <div class="toggle-item selected" onclick="toggleWidget(this,'sport')">
+          <div class="toggle-emoji">⚽</div>
+          <div class="toggle-label">Sport</div>
+        </div>
+        <div class="toggle-item" onclick="toggleWidget(this,'bourse')">
+          <div class="toggle-emoji">📊</div>
+          <div class="toggle-label">Bourse</div>
+          <div class="toggle-sub">Pro</div>
+        </div>
+        <div class="toggle-item" onclick="toggleWidget(this,'citation')">
+          <div class="toggle-emoji">💬</div>
+          <div class="toggle-label">Citation</div>
+        </div>
+      </div>
+      <button class="setup-btn" onclick="finishSetup()">🚀 Lancer MorningDash</button>
+    </div>
+  </div>
+
+  <!-- ═══════ DASHBOARD ═══════ -->
+  <div id="dashboard" class="screen">
+    <div class="status-bar">
+      <div class="status-time" id="statusTime">--:--</div>
+      <div class="status-icons">
+        <span class="status-icon">🔔</span>
+        <span class="status-icon">⚡</span>
+      </div>
+    </div>
+
+    <div class="greeting-header">
+      <div class="greeting-date" id="greetingDate">LUNDI 20 AVRIL 2026</div>
+      <div class="greeting-text" id="greetingText">Bonjour, <em>Lucas</em> ☀️</div>
+      <div class="greeting-sub" id="greetingSub">3 tâches aujourd'hui · Paris, 18°C</div>
+    </div>
+
+    <div class="dash-scroll" id="dashScroll"></div>
+  </div>
+
+  <!-- ═══════ PROFILE ═══════ -->
+  <div id="profile" class="screen">
+    <div class="profile-header">
+      <div class="profile-avatar" id="profileAvatar">?</div>
+      <div class="profile-name" id="profileName">Lucas</div>
+      <div class="profile-email" id="profileEmail">Paris · Gratuit</div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">Mon compte</div>
+      <div class="settings-item" onclick="showToast('✨ Bientôt disponible !')">
+        <div class="settings-item-icon">👑</div>
+        <div class="settings-item-text">
+          <div class="settings-item-title">Passer en Pro</div>
+          <div class="settings-item-sub">3€/mois · Sans pub · Widgets premium</div>
+        </div>
+        <div class="settings-item-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="showToast('Profil mis à jour !')">
+        <div class="settings-item-icon">✏️</div>
+        <div class="settings-item-text">
+          <div class="settings-item-title">Modifier le profil</div>
+          <div class="settings-item-sub">Prénom, ville, email</div>
+        </div>
+        <div class="settings-item-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">Widgets</div>
+      <div class="settings-item">
+        <div class="settings-item-icon">🌤</div>
+        <div class="settings-item-text">
+          <div class="settings-item-title">Météo</div>
+          <div class="settings-item-sub">Géolocalisation activée</div>
+        </div>
+        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-icon">📰</div>
+        <div class="settings-item-text">
+          <div class="settings-item-title">Actualités</div>
+          <div class="settings-item-sub">Tech, Sport</div>
+        </div>
+        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-icon">📊</div>
+        <div class="settings-item-text">
+          <div class="settings-item-title">Bourse</div>
+          <div class="settings-item-sub">Fonctionnalité Pro</div>
+        </div>
+        <div class="toggle-switch" onclick="showToast('Disponible avec Pro 👑')"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">App</div>
+      <div class="settings-item" onclick="showToast('Notifications activées !')">
+        <div class="settings-item-icon">🔔</div>
+        <div class="settings-item-text">
+          <div class="settings-item-title">Notifications push</div>
+          <div class="settings-item-sub">Rappels matinaux à 7h</div>
+        </div>
+        <div class="toggle-switch" onclick="event.stopPropagation();this.classList.toggle('on');showToast('Notifications activées !')"></div>
+      </div>
+      <div class="settings-item" onclick="showToast('Installer : menu partage → Écran accueil')">
+        <div class="settings-item-icon">📲</div>
+        <div class="settings-item-text">
+          <div class="settings-item-title">Installer sur l'écran d'accueil</div>
+          <div class="settings-item-sub">Comme une vraie app</div>
+        </div>
+        <div class="settings-item-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="resetApp()">
+        <div class="settings-item-icon">🔄</div>
+        <div class="settings-item-text">
+          <div class="settings-item-title">Réinitialiser l'app</div>
+          <div class="settings-item-sub">Recommencer la configuration</div>
+        </div>
+        <div class="settings-item-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="bottomNav" style="display:none">
+    <button class="nav-item active" onclick="switchTab('dashboard',this)">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-label">Accueil</div>
+    </button>
+    <button class="nav-item" onclick="switchTab('profile',this)">
+      <div class="nav-icon">👤</div>
+      <div class="nav-label">Profil</div>
+    </button>
+  </nav>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+//  MORNINGDASH — APP ENGINE
+// ══════════════════════════════════
+
+const DATA = {
+  name: 'Lucas',
+  city: 'Paris',
+  interests: ['tech','sport'],
+  widgets: ['meteo','actus','taches','sport','citation'],
+  tasks: [
+    { id:1, text:'Faire du sport', done:false, priority:'high' },
+    { id:2, text:'Lire 20 minutes', done:false, priority:'med' },
+    { id:3, text:'Appeler Maman', done:true, priority:'low' },
+  ],
+  isPro: false,
+};
+
+const QUOTES = [
+  { text: "Le secret pour aller de l'avant, c'est de commencer.", author: "Mark Twain" },
+  { text: "Chaque matin est une nouvelle chance de changer ta vie.", author: "Anonyme" },
+  { text: "Le succès n'est pas final, l'échec n'est pas fatal.", author: "Winston Churchill" },
+  { text: "Fais de chaque journée ton chef-d'œuvre.", author: "John Wooden" },
+  { text: "La discipline est le pont entre les objectifs et les accomplissements.", author: "Jim Rohn" },
+  { text: "Commence là où tu es, utilise ce que tu as, fais ce que tu peux.", author: "Arthur Ashe" },
+];
+
+// ── NEWS SYSTEM ──
+let NEWS_LIVE = [];
+let NEWS_LOADING = false;
+let NEWS_LOADED = false;
+
+const RSS_SOURCES = [
+  { url:'https://www.lemonde.fr/rss/une.xml',              cat:'MONDE',   emoji:'🌍', interests:['monde','tech','finance','culture','sante'] },
+  { url:'https://www.lequipe.fr/rss/actu_rss_une.xml',    cat:'SPORT',   emoji:'⚽', interests:['sport'] },
+  { url:'https://feeds.bbci.co.uk/news/technology/rss.xml',cat:'TECH',   emoji:'💻', interests:['tech'] },
+  { url:'https://feeds.feedburner.com/clubic',            cat:'TECH',    emoji:'💻', interests:['tech'] },
+];
+
+const NEWS_CACHE_TTL = 15 * 60 * 1000;
+
+function timeAgo(dateStr) {
+  try {
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+    if (diff < 1) return 'À l\'instant';
+    if (diff < 60) return `Il y a ${diff}min`;
+    if (diff < 1440) return `Il y a ${Math.floor(diff/60)}h`;
+    return `Il y a ${Math.floor(diff/1440)}j`;
+  } catch(e) { return ''; }
+}
+
+async function fetchRSSFeed(source) {
+  const proxy = `https://corsproxy.io/?${encodeURIComponent(source.url)}`;
+  const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  const xml = new DOMParser().parseFromString(text, 'text/xml');
+  const items = [...xml.querySelectorAll('item, entry')].slice(0, 4);
+  return items.map(item => {
+    const title = (item.querySelector('title')?.textContent || '').trim().replace(/\s+/g,' ');
+    const link = item.querySelector('link')?.textContent?.trim()
+      || item.querySelector('link')?.getAttribute('href') || '#';
+    const pubDate = item.querySelector('pubDate, published, updated')?.textContent || '';
+    return { cat: source.cat, emoji: source.emoji, title, link, time: timeAgo(pubDate) };
+  }).filter(a => a.title.length > 5);
+}
+
+async function loadNews() {
+  if (NEWS_LOADING) return;
+  NEWS_LOADING = true;
+
+  const interests = Array.isArray(DATA.interests) && DATA.interests.length
+    ? DATA.interests : ['monde','tech','sport'];
+
+  const cacheKey = `news2_${interests.slice().sort().join('_')}`;
+  try {
+    const raw = localStorage.getItem(cacheKey);
+    if (raw) {
+      const { d, t } = JSON.parse(raw);
+      if (Date.now() - t < NEWS_CACHE_TTL && Array.isArray(d) && d.length > 0) {
+        NEWS_LIVE = d; NEWS_LOADED = true; NEWS_LOADING = false;
+        refreshNewsCard(); return;
+      }
+    }
+  } catch(e) {}
+
+  // Sélectionner les sources pertinentes
+  const sources = RSS_SOURCES.filter(s =>
+    s.interests.some(i => interests.includes(i))
+  ).slice(0, 3);
+
+  // Fetch en parallèle avec timeout individuel
+  const results = await Promise.allSettled(sources.map(s => fetchRSSFeed(s)));
+
+  const articles = [];
+  results.forEach(r => {
+    if (r.status === 'fulfilled') articles.push(...r.value);
+  });
+
+  if (articles.length >= 2) {
+    NEWS_LIVE = articles.slice(0, 6);
+    NEWS_LOADED = true;
+    try { localStorage.setItem(cacheKey, JSON.stringify({ d: NEWS_LIVE, t: Date.now() })); } catch(e) {}
+  } else {
+    // Fallback lisible
+    NEWS_LIVE = [
+      { cat:'TECH',  emoji:'💻', title:'Les dernières innovations en intelligence artificielle', time:'Récent', link:'https://www.lemonde.fr/pixels/' },
+      { cat:'MONDE', emoji:'🌍', title:'Actualités internationales du jour', time:'Récent', link:'https://www.lemonde.fr/international/' },
+      { cat:'SPORT', emoji:'⚽', title:'Les résultats sportifs du jour', time:'Récent', link:'https://www.lequipe.fr/' },
+    ];
+    NEWS_LOADED = true;
+  }
+
+  NEWS_LOADING = false;
+  refreshNewsCard();
+}
+
+function refreshNewsCard() {
+  const scroll = document.getElementById('dashScroll');
+  if (!scroll) return;
+  const old = scroll.querySelector('.card-news');
+  if (old) scroll.replaceChild(buildNewsCard(), old);
+}
+
+const SPORTS = [
+  { team1:'PSG', team2:'Lyon', time:'20h45', live:false, league:'Ligue 1' },
+  { team1:'Real Madrid', team2:'Barcelone', time:'21h00', live:false, league:'La Liga' },
+  { team1:'Lakers', team2:'Warriors', time:'03h30', live:false, league:'NBA' },
+];
+
+const STOCKS = [
+  { name:'Apple', ticker:'AAPL', icon:'🍎', price:'213.45', change:'+1.2%', up:true },
+  { name:'Tesla', ticker:'TSLA', icon:'⚡', price:'184.20', change:'-0.8%', up:false },
+  { name:'LVMH', ticker:'MC.PA', icon:'👜', price:'724.50', change:'+2.1%', up:true },
+  { name:'CAC 40', ticker:'CAC', icon:'🇫🇷', price:'7,842', change:'+0.9%', up:true },
+];
+
+const WEATHER_CACHE_TTL = 10 * 60 * 1000;
+
+let WEATHER = {
+  temp: '--', desc: 'Chargement...', emoji: '🌤',
+  humidity: '--', wind: '--', rain: '0 mm',
+  feelsLike: '--°', loaded: false, forecast: []
+};
+
+const WMO_CODES = {
+  0:'Ciel dégagé', 1:'Peu nuageux', 2:'Partiellement nuageux', 3:'Couvert',
+  45:'Brouillard', 48:'Brouillard givrant',
+  51:'Bruine légère', 53:'Bruine modérée', 55:'Bruine dense',
+  61:'Pluie légère', 63:'Pluie modérée', 65:'Pluie forte',
+  71:'Neige légère', 73:'Neige modérée', 75:'Neige forte',
+  80:'Averses légères', 81:'Averses modérées', 82:'Averses violentes',
+  95:'Orage', 96:'Orage avec grêle', 99:'Orage violent'
+};
+const WMO_EMOJI = {
+  0:'☀️', 1:'🌤', 2:'⛅', 3:'☁️',
+  45:'🌫', 48:'🌫', 51:'🌦', 53:'🌦', 55:'🌧',
+  61:'🌦', 63:'🌧', 65:'🌧', 71:'❄️', 73:'❄️', 75:'❄️',
+  80:'🌦', 81:'🌧', 82:'⛈', 95:'⛈', 96:'⛈', 99:'⛈'
+};
+const DAY_NAMES = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+
+function wmoEmoji(c) { const n=parseInt(c)||0; return WMO_EMOJI[n]||WMO_EMOJI[Math.floor(n/10)*10]||'🌤'; }
+function wmoDesc(c)  { const n=parseInt(c)||0; return WMO_CODES[n] ||WMO_CODES[Math.floor(n/10)*10] ||'Variable'; }
+
+function fetchTimeout(url, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms || 12000);
+    fetch(url).then(r => { clearTimeout(t); resolve(r); })
+              .catch(e => { clearTimeout(t); reject(e); });
+  });
+}
+
+// ─── POINT D'ENTRÉE ───────────────────────────────────────────────────────────
+async function loadWeather() {
+  showWeatherMsg('Chargement...');
+  const city = DATA.city || 'Paris';
+
+  // 1) Géocodage ville → coordonnées
+  let lat = 48.8566, lon = 2.3522; // fallback Paris
+  try {
+    const r = await fetchTimeout(
+      'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(city) + '&count=1&language=fr&format=json',
+      10000
+    );
+    if (r.ok) {
+      const g = await r.json();
+      if (g.results && g.results[0]) { lat = g.results[0].latitude; lon = g.results[0].longitude; }
+    }
+  } catch(e) { /* garder Paris */ }
+
+  await fetchWeatherForCoords(lat, lon);
+
+  // Géoloc en bonus (non bloquant)
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => fetchWeatherForCoords(pos.coords.latitude, pos.coords.longitude),
+      () => {},
+      { timeout: 8000, maximumAge: 300000 }
+    );
+  }
+}
+
+function showWeatherMsg(msg) {
+  WEATHER.desc = msg;
+  const el = document.querySelector('.weather-desc');
+  if (el) el.textContent = msg;
+}
+
+// ─── FETCH MÉTÉO POUR DES COORDONNÉES ─────────────────────────────────────────
+async function fetchWeatherForCoords(lat, lon) {
+  const key = 'wx8_' + parseFloat(lat).toFixed(1) + '_' + parseFloat(lon).toFixed(1);
+
+  // Cache valide ?
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const c = JSON.parse(raw);
+      if (c && c.t && c.d && c.d.loaded && c.d.temp && c.d.temp !== '--'
+          && Date.now() - c.t < WEATHER_CACHE_TTL) {
+        applyWeather(c.d); return;
+      }
+    }
+  } catch(e) {}
+
+  // Tentative A : Open-Meteo (nouvelle API — TOUS les champs avec underscores)
+  // Deux paramètres séparés : current= (avec underscore) + daily= (avec underscore)
+  const urlA = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude='  + parseFloat(lat).toFixed(4)
+    + '&longitude=' + parseFloat(lon).toFixed(4)
+    + '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation,weather_code'
+    + '&daily=weather_code,temperature_2m_max'
+    + '&timezone=auto&forecast_days=6';
+
+  try {
+    showWeatherMsg('Météo en cours...');
+    const r = await fetchTimeout(urlA, 12000);
+    if (!r.ok) throw new Error('A_http_' + r.status);
+    const j = await r.json();
+    if (j.error) throw new Error('A_err: ' + (j.reason || '?'));
+
+    const c = j.current;
+    if (!c || c.temperature_2m === undefined) throw new Error('A_no_current');
+
+    const forecast = [];
+    if (j.daily && j.daily.time) {
+      for (let i = 1; i <= 5 && i < j.daily.time.length; i++) {
+        const d = new Date(j.daily.time[i] + 'T12:00:00');
+        forecast.push({ day: DAY_NAMES[d.getDay()], temp: Math.round(j.daily.temperature_2m_max[i]), emoji: wmoEmoji(j.daily.weather_code[i]) });
+      }
+    }
+
+    const wd = {
+      temp: String(Math.round(c.temperature_2m)),
+      feelsLike: Math.round(c.apparent_temperature) + '°',
+      desc: wmoDesc(c.weather_code),
+      emoji: wmoEmoji(c.weather_code),
+      humidity: Math.round(c.relative_humidity_2m || 0) + '%',
+      wind: Math.round(c.wind_speed_10m || 0) + ' km/h',
+      rain: (c.precipitation || 0) + ' mm',
+      loaded: true, forecast
+    };
+    applyWeather(wd);
+    try { localStorage.setItem(key, JSON.stringify({ d: wd, t: Date.now() })); } catch(e) {}
+    return;
+
+  } catch(eA) {
+    console.warn('Open-Meteo A failed:', eA.message);
+    showWeatherMsg('Essai B...');
+  }
+
+  // Tentative B : Open-Meteo (ancienne API — current_weather=true, SANS hourly)
+  const urlB = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude='  + parseFloat(lat).toFixed(4)
+    + '&longitude=' + parseFloat(lon).toFixed(4)
+    + '&current_weather=true'
+    + '&timezone=auto';
+
+  try {
+    const r = await fetchTimeout(urlB, 12000);
+    if (!r.ok) throw new Error('B_http_' + r.status);
+    const j = await r.json();
+    if (j.error) throw new Error('B_err: ' + (j.reason || '?'));
+    const cw = j.current_weather;
+    if (!cw || cw.temperature === undefined) throw new Error('B_no_cw');
+
+    const wd = {
+      temp: String(Math.round(cw.temperature)),
+      feelsLike: Math.round(cw.temperature) + '°',
+      desc: wmoDesc(cw.weathercode),
+      emoji: wmoEmoji(cw.weathercode),
+      humidity: '--', wind: Math.round(cw.windspeed || 0) + ' km/h',
+      rain: '0 mm', loaded: true, forecast: []
+    };
+    applyWeather(wd);
+    try { localStorage.setItem(key, JSON.stringify({ d: wd, t: Date.now() })); } catch(e) {}
+    return;
+
+  } catch(eB) {
+    console.warn('Open-Meteo B failed:', eB.message);
+    showWeatherMsg('Essai C...');
+  }
+
+  // Tentative C : wttr.in
+  try {
+    const city = DATA.city || 'Paris';
+    const r = await fetchTimeout('https://wttr.in/' + encodeURIComponent(city) + '?format=j1', 10000);
+    if (!r.ok) throw new Error('C_http_' + r.status);
+    const w = await r.json();
+    const cc = w.current_condition && w.current_condition[0];
+    if (!cc) throw new Error('C_no_data');
+    const wd = {
+      temp: cc.temp_C, feelsLike: cc.FeelsLikeC + '°',
+      desc: (cc.weatherDesc && cc.weatherDesc[0] && cc.weatherDesc[0].value) || 'Variable',
+      emoji: '🌤', humidity: cc.humidity + '%',
+      wind: cc.windspeedKmph + ' km/h', rain: (cc.precipMM || '0') + ' mm',
+      loaded: true, forecast: []
+    };
+    applyWeather(wd);
+    try { localStorage.setItem(key, JSON.stringify({ d: wd, t: Date.now() })); } catch(e) {}
+    return;
+
+  } catch(eC) {
+    console.warn('wttr.in failed:', eC.message);
+  }
+
+  // Tout a échoué
+  Object.assign(WEATHER, { desc: 'Réseau indisponible', emoji: '🌡️', temp: '--', loaded: true });
+  refreshWeatherCard();
+}
+
+function applyWeather(data) {
+  Object.assign(WEATHER, data);
+  refreshWeatherCard();
+  const sub = document.getElementById('greetingSub');
+  if (sub) {
+    const n = (DATA.tasks || []).filter(t => !t.done).length;
+    sub.textContent = (n === 0 ? 'Toutes les tâches terminées 🎉' : `${n} tâche${n>1?'s':''} restante${n>1?'s':''}`) + ' · ' + DATA.city + ', ' + WEATHER.temp + '°C';
+  }
+}
+
+function refreshWeatherCard() {
+  const scroll = document.getElementById('dashScroll');
+  if (!scroll) return;
+  const old = scroll.querySelector('.card-weather');
+  if (old) scroll.replaceChild(buildWeatherCard(), old);
+}
+
+function geolocateWeather() {
+  try { Object.keys(localStorage).forEach(k => { if (k.startsWith('wx')) localStorage.removeItem(k); }); } catch(e) {}
+  Object.assign(WEATHER, { loaded: false, desc: 'Chargement...', temp: '--' });
+  refreshWeatherCard();
+  loadWeather();
+}
+
+// ── NAVIGATION ──
+function switchScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function switchTab(screenId, btn) {
+  switchScreen(screenId);
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (screenId === 'dashboard') buildDashboard();
+  if (screenId === 'profile') updateProfileScreen();
+}
+
+function updateProfileScreen() {
+  const el = document.getElementById('profileAvatar');
+  const nameEl = document.getElementById('profileName');
+  const emailEl = document.getElementById('profileEmail');
+  if (el) el.textContent = DATA.name ? DATA.name.charAt(0).toUpperCase() : '?';
+  if (nameEl) nameEl.textContent = DATA.name || 'Utilisateur';
+  if (emailEl) emailEl.textContent = `${DATA.city || 'Paris'} · ${DATA.isPro ? 'Pro 👑' : 'Gratuit'}`;
+}
+
+// ── ONBOARDING ──
+function goToSetup() { switchScreen('setup'); }
+
+let _clockInterval = null;
+let _toastTimer = null;
+
+function goToDashboard() {
+  document.getElementById('bottomNav').style.display = 'flex';
+  switchScreen('dashboard');
+  buildDashboard();
+  updateClock();
+  if (!_clockInterval) {
+    _clockInterval = setInterval(updateClock, 1000);
+  }
+  loadWeather();
+  loadNews();
+}
+
+// ── SETUP ──
+function goStep(num) {
+  if (num === 2) {
+    const name = document.getElementById('inputName').value.trim();
+    const city = document.getElementById('inputCity').value.trim();
+    if (!name) { showToast('Entre ton prénom 😊'); return; }
+    DATA.name = name;
+    DATA.city = city || 'Paris';
+  }
+  if (num === 3) {
+    // Sync interests from DOM in case user changed them
+    const selected = document.querySelectorAll('#step2 .toggle-item.selected');
+    DATA.interests = Array.from(selected).map(el => {
+      const fn = el.getAttribute('onclick') || '';
+      const m = fn.match(/toggleInterest\(this,'([^']+)'\)/);
+      return m ? m[1] : null;
+    }).filter(Boolean);
+  }
+  document.querySelectorAll('.setup-step').forEach(s => s.classList.remove('active'));
+  document.getElementById(`step${num}`).classList.add('active');
+  const dots = document.querySelectorAll('.setup-dot');
+  dots.forEach((d,i) => d.classList.toggle('done', i < num));
+}
+
+function toggleInterest(el, interest) {
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) {
+    if (!DATA.interests.includes(interest)) DATA.interests.push(interest);
+  } else {
+    DATA.interests = DATA.interests.filter(i => i !== interest);
+  }
+}
+
+function toggleWidget(el, widget) {
+  if (widget === 'bourse' && !DATA.isPro) {
+    showToast('📊 Bourse disponible avec Pro 👑');
+    return;
+  }
+  // Météo ne peut pas être désactivée
+  if (widget === 'meteo') {
+    showToast('🌤 La météo est toujours active');
+    if (!el.classList.contains('selected')) el.classList.add('selected');
+    return;
+  }
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) {
+    if (!DATA.widgets.includes(widget)) DATA.widgets.push(widget);
+  } else {
+    DATA.widgets = DATA.widgets.filter(w => w !== widget);
+  }
+}
+
+function finishSetup() {
+  // Sync widgets from DOM
+  const selectedWidgets = document.querySelectorAll('#step3 .toggle-item.selected');
+  DATA.widgets = Array.from(selectedWidgets).map(el => {
+    const fn = el.getAttribute('onclick') || '';
+    const m = fn.match(/toggleWidget\(this,'([^']+)'\)/);
+    return m ? m[1] : null;
+  }).filter(Boolean);
+  // Ensure meteo always included
+  if (!DATA.widgets.includes('meteo')) DATA.widgets.unshift('meteo');
+  saveData();
+  goToDashboard();
+}
+
+// ── DASHBOARD ──
+function buildDashboard() {
+  try {
+    const now = new Date();
+    const hours = now.getHours();
+    const greetWord = hours < 12 ? 'Bonjour' : hours < 18 ? 'Bon après-midi' : 'Bonsoir';
+    const days = ['DIMANCHE','LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI'];
+    const months = ['JANVIER','FÉVRIER','MARS','AVRIL','MAI','JUIN','JUILLET','AOÛT','SEPTEMBRE','OCTOBRE','NOVEMBRE','DÉCEMBRE'];
+
+    const greetDate = document.getElementById('greetingDate');
+    const greetText = document.getElementById('greetingText');
+    const greetSub = document.getElementById('greetingSub');
+    if (greetDate) greetDate.textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    if (greetText) greetText.innerHTML = `${greetWord}, <em>${DATA.name || 'toi'}</em> ${hours < 12 ? '☀️' : hours < 18 ? '🌤' : '🌙'}`;
+
+    const tasks = Array.isArray(DATA.tasks) ? DATA.tasks : [];
+    const doneTasks = tasks.filter(t => !t.done).length;
+    const taskMsg = doneTasks === 0 ? 'Toutes les tâches terminées 🎉' : `${doneTasks} tâche${doneTasks>1?'s':''} restante${doneTasks>1?'s':''}`;
+    if (greetSub) greetSub.textContent = `${taskMsg} · ${DATA.city || 'Paris'}, ${WEATHER.temp}°C`;
+
+    // Update profile
+    const pName = document.getElementById('profileName');
+    const pEmail = document.getElementById('profileEmail');
+    const pAvatar = document.getElementById('profileAvatar');
+    if (pName) pName.textContent = DATA.name || 'Utilisateur';
+    if (pEmail) pEmail.textContent = `${DATA.city || 'Paris'} · ${DATA.isPro ? 'Pro 👑' : 'Gratuit'}`;
+    if (pAvatar) pAvatar.textContent = DATA.name ? DATA.name.charAt(0).toUpperCase() : '?';
+
+    // Build cards
+    const scroll = document.getElementById('dashScroll');
+    if (!scroll) return;
+    scroll.innerHTML = '';
+
+    const widgets = Array.isArray(DATA.widgets) ? DATA.widgets : ['meteo','actus','taches','sport','citation'];
+
+    scroll.appendChild(buildWeatherCard());
+    if (widgets.includes('citation')) scroll.appendChild(buildQuoteCard());
+    if (widgets.includes('taches')) scroll.appendChild(buildTasksCard());
+    if (widgets.includes('actus')) scroll.appendChild(buildNewsCard());
+    if (widgets.includes('sport')) scroll.appendChild(buildSportCard());
+    if (!DATA.isPro) scroll.appendChild(buildAdCard());
+    if (widgets.includes('bourse') && DATA.isPro) scroll.appendChild(buildStocksCard());
+    if (!DATA.isPro) scroll.appendChild(buildUpgradeCard());
+
+  } catch(err) {
+    console.error('buildDashboard error:', err);
+  }
+}
+
+function buildWeatherCard() {
+  const card = document.createElement('div');
+  card.className = 'card card-weather';
+
+  const forecastHtml = WEATHER.forecast && WEATHER.forecast.length
+    ? `<div class="weather-forecast">${WEATHER.forecast.map(f => `
+        <div class="forecast-item">
+          <div class="forecast-day">${f.day}</div>
+          <div class="forecast-emoji">${f.emoji}</div>
+          <div class="forecast-temp">${f.temp}°</div>
+        </div>`).join('')}</div>`
+    : '';
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">🌤 MÉTÉO</div>
+      <button class="card-action" onclick="geolocateWeather();showToast('📍 Mise à jour...')">📍 ${DATA.city}</button>
+    </div>
+    <div class="weather-main">
+      <div class="weather-left">
+        <div class="weather-temp">${WEATHER.temp}°</div>
+        <div class="weather-desc">${WEATHER.desc}</div>
+        <div class="weather-city">Ressenti ${WEATHER.feelsLike}</div>
+      </div>
+      <div class="weather-emoji">${WEATHER.emoji}</div>
+    </div>
+    <div class="weather-extras">
+      <div class="weather-extra">
+        <div class="weather-extra-val">💧 ${WEATHER.humidity}</div>
+        <div class="weather-extra-label">Humidité</div>
+      </div>
+      <div class="weather-extra">
+        <div class="weather-extra-val">💨 ${WEATHER.wind}</div>
+        <div class="weather-extra-label">Vent</div>
+      </div>
+      <div class="weather-extra">
+        <div class="weather-extra-val">🌧 ${WEATHER.rain}</div>
+        <div class="weather-extra-label">Pluie</div>
+      </div>
+    </div>
+    ${forecastHtml}
+  `;
+  return card;
+}
+
+function buildQuoteCard() {
+  const now = new Date();
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(),0,0)) / 86400000);
+  const q = QUOTES[dayOfYear % QUOTES.length];
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">💬 CITATION DU JOUR</div>
+    </div>
+    <div class="quote-content">
+      <div class="quote-text">"${q.text}"</div>
+      <div class="quote-author">— ${q.author}</div>
+    </div>
+  `;
+  return card;
+}
+
+function buildTasksCard() {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const tasksHtml = DATA.tasks.map(t => `
+    <div class="task-item ${t.done?'done':''}" onclick="toggleTask(${t.id})" id="task-${t.id}">
+      <div class="task-check">
+        <span class="task-check-icon">✓</span>
+      </div>
+      <div class="task-text">${escapeHtml(t.text)}</div>
+      <div class="task-priority ${t.priority}"></div>
+    </div>
+  `).join('');
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">✅ TÂCHES DU JOUR</div>
+      <button class="card-action">${DATA.tasks.filter(t=>!t.done).length} restantes</button>
+    </div>
+    <div class="tasks-list">${tasksHtml}</div>
+    <div class="add-task-row">
+      <input type="text" class="add-task-input" id="newTaskInput" placeholder="Ajouter une tâche..." onkeydown="if(event.key==='Enter')addTask()">
+      <button class="add-task-btn" onclick="addTask()">+</button>
+    </div>
+  `;
+  return card;
+}
+
+function buildNewsCard() {
+  const card = document.createElement('div');
+  card.className = 'card card-news';
+
+  let items = NEWS_LIVE;
+  if (items.length && Array.isArray(DATA.interests) && DATA.interests.length) {
+    const catMap = { tech:'TECH', sport:'SPORT', finance:'FINANCE', monde:'MONDE', culture:'CULTURE', sante:'SANTÉ' };
+    const wantedCats = DATA.interests.map(i => catMap[i] || i.toUpperCase());
+    const filtered = items.filter(n => wantedCats.includes(n.cat));
+    if (filtered.length) items = filtered;
+  }
+  items = items.slice(0, 4);
+
+  let bodyHtml;
+  if (!NEWS_LOADED) {
+    bodyHtml = `<div style="padding:20px;text-align:center;color:var(--text2);font-size:13px">
+      <div style="font-size:24px;margin-bottom:8px">📰</div>Chargement des actus...</div>`;
+  } else if (!items.length) {
+    bodyHtml = `<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">
+      Aucune actu disponible.</div>`;
+  } else {
+    bodyHtml = items.map(n => `
+      <a class="news-item" href="${n.link}" target="_blank" rel="noopener">
+        <div class="news-emoji">${n.emoji}</div>
+        <div class="news-content">
+          <div class="news-cat">${n.cat}</div>
+          <div class="news-title">${escapeHtml(n.title)}</div>
+          <div class="news-time">${n.time}</div>
+        </div>
+      </a>`).join('');
+  }
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">📰 ACTUALITÉS</div>
+      <button class="card-action" onclick="NEWS_LOADED=false;NEWS_LIVE=[];loadNews();showToast('🔄 Actualisation...')">↺ Actu</button>
+    </div>
+    <div class="news-list">${bodyHtml}</div>
+  `;
+  return card;
+}
+
+function buildSportCard() {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const sportsHtml = SPORTS.map(s => `
+    <div class="sport-item">
+      <div class="sport-teams">
+        <div class="sport-match">${s.team1} vs ${s.team2}</div>
+        <div class="sport-meta">${s.league}</div>
+      </div>
+      ${s.live
+        ? '<div class="sport-live">LIVE</div>'
+        : `<div class="sport-time">${s.time}</div>`
+      }
+    </div>
+  `).join('');
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">⚽ SPORT CE SOIR</div>
+    </div>
+    <div class="sport-list">${sportsHtml}</div>
+  `;
+  return card;
+}
+
+function buildStocksCard() {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const stocksHtml = STOCKS.map(s => `
+    <div class="stock-item">
+      <div class="stock-icon">${s.icon}</div>
+      <div>
+        <div class="stock-name">${s.name}</div>
+        <div class="stock-ticker">${s.ticker}</div>
+      </div>
+      <div class="stock-right">
+        <div class="stock-price">${s.price}$</div>
+        <div class="stock-change ${s.up?'up':'down'}">${s.change}</div>
+      </div>
+    </div>
+  `).join('');
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">📊 BOURSE</div>
+      <button class="card-action">En direct</button>
+    </div>
+    <div class="stocks-grid">${stocksHtml}</div>
+  `;
+  return card;
+}
+
+function buildAdCard() {
+  const card = document.createElement('div');
+  card.className = 'card ad-card';
+  card.innerHTML = `
+    <div class="ad-label">PUBLICITÉ</div>
+    <div class="ad-content">
+      <div class="ad-emoji">🛍️</div>
+      <div class="ad-text">
+        <div class="ad-title">Découvrez nos offres du moment</div>
+        <div class="ad-sub">Profitez de -30% sur votre première commande avec le code MORNING30</div>
+        <div class="ad-cta" onclick="showToast('Offre partenaire !')">En profiter →</div>
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+function buildUpgradeCard() {
+  const card = document.createElement('div');
+  card.className = 'card upgrade-card';
+  card.innerHTML = `
+    <div class="upgrade-emoji">👑</div>
+    <div class="upgrade-title">Passe en Pro, sans pub</div>
+    <div class="upgrade-sub">Retire toutes les publicités, accède aux widgets Bourse et aux alertes push personnalisées.</div>
+    <button class="upgrade-btn" onclick="showToast('✨ Bientôt disponible !')">Essayer Pro gratuitement</button>
+    <div class="upgrade-price">Puis 3€/mois · Annulable à tout moment</div>
+  `;
+  return card;
+}
+
+// ── HELPERS ──
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── TASKS ──
+function toggleTask(id) {
+  const task = DATA.tasks.find(t => t.id === id);
+  if (!task) return;
+  task.done = !task.done;
+  saveData();
+  // Preserve scroll position
+  const dashboard = document.getElementById('dashboard');
+  const scrollTop = dashboard ? dashboard.scrollTop : 0;
+  buildDashboard();
+  if (dashboard) dashboard.scrollTop = scrollTop;
+}
+
+function addTask() {
+  const input = document.getElementById('newTaskInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  DATA.tasks.push({ id: Date.now(), text, done: false, priority: 'med' });
+  input.value = '';
+  saveData();
+  const dashboard = document.getElementById('dashboard');
+  const scrollTop = dashboard ? dashboard.scrollTop : 0;
+  buildDashboard();
+  if (dashboard) dashboard.scrollTop = scrollTop;
+  showToast('✅ Tâche ajoutée !');
+}
+
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  const el = document.getElementById('statusTime');
+  if (el) el.textContent = `${h}:${m}`;
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  if (_toastTimer) clearTimeout(_toastTimer);
+  toast.textContent = msg;
+  toast.classList.add('show');
+  _toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+    _toastTimer = null;
+  }, 2500);
+}
+
+// ── STORAGE ──
+function saveData() {
+  try { localStorage.setItem('morningdash_v2', JSON.stringify(DATA)); } catch(e){}
+}
+
+function loadData() {
+  try {
+    // v2 key pour éviter les conflits avec l'ancien localStorage corrompu
+    const saved = localStorage.getItem('morningdash_v2');
+    if (saved) {
+      const d = JSON.parse(saved);
+      if (typeof d === 'object' && d !== null) {
+        if (!Array.isArray(d.tasks)) d.tasks = DATA.tasks;
+        if (!Array.isArray(d.interests)) d.interests = DATA.interests;
+        if (!Array.isArray(d.widgets)) d.widgets = DATA.widgets;
+        if (typeof d.name !== 'string' || !d.name) return false;
+        Object.assign(DATA, d);
+        // S'assurer que meteo est toujours dans les widgets
+        if (!DATA.widgets.includes('meteo')) DATA.widgets.unshift('meteo');
+        return true;
+      }
+    }
+  } catch(e) { console.warn('loadData error:', e); }
+  return false;
+}
+
+function resetApp() {
+  if (confirm('Réinitialiser l\'application ?')) {
+    localStorage.clear();
+    location.reload();
+  }
+}
+
+// ── INIT ──
+(function init() {
+  // Vider TOUT le cache météo (toutes versions) au démarrage
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('wx') || k.startsWith('om_') || k.startsWith('owm_') || k.startsWith('news')) {
+        localStorage.removeItem(k);
+      }
+    });
+  } catch(e) {}
+
+  const hasData = loadData();
+  if (hasData && DATA.name) {
+    goToDashboard();
+  } else {
+    updateClock();
+    if (!_clockInterval) {
+      _clockInterval = setInterval(updateClock, 1000);
+    }
+  }
+})();
+</script>
+</body>
+</html>
